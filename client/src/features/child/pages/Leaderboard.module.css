@@ -1,0 +1,33 @@
+.page { min-height: 100vh; background: linear-gradient(160deg, #f0eeff, #e8fff8); position: relative; }
+.bg { position: absolute; inset: 0; background: radial-gradient(ellipse at top, rgba(108,99,255,0.08) 0%, transparent 70%); pointer-events: none; }
+.inner { max-width: 700px; margin: 0 auto; padding: 40px 24px; position: relative; }
+.back { color: var(--color-primary); font-weight: 700; font-size: 14px; display: inline-block; margin-bottom: 24px; }
+.back:hover { text-decoration: underline; }
+.title { font-size: 40px; text-align: center; }
+.sub { text-align: center; color: var(--color-text-muted); margin-bottom: 40px; }
+
+.podium { display: flex; align-items: flex-end; justify-content: center; gap: 16px; margin-bottom: 40px; }
+.podiumItem { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.podiumAvatar { font-size: 40px; }
+.podiumMedal { font-size: 28px; }
+.podiumName { font-weight: 800; font-size: 15px; }
+.podiumXp { font-size: 12px; color: var(--color-primary); font-weight: 700; margin-bottom: 4px; }
+.podiumBlock { width: 80px; border-radius: 8px 8px 0 0; }
+.rank1 .podiumBlock { background: linear-gradient(180deg, #ffd700, #ffaa00); }
+.rank2 .podiumBlock { background: linear-gradient(180deg, #c0c0c0, #a0a0a0); }
+.rank3 .podiumBlock { background: linear-gradient(180deg, #cd7f32, #a0522d); }
+
+.list { display: flex; flex-direction: column; gap: 10px; }
+.row { display: flex; align-items: center; gap: 16px; padding: 14px 20px; }
+.topRow { border-color: var(--color-primary); background: #fafafe; }
+.rank { font-size: 24px; width: 36px; text-align: center; flex-shrink: 0; }
+.rankNum { font-size: 16px; font-weight: 800; color: var(--color-text-muted); }
+.avatar { font-size: 32px; flex-shrink: 0; }
+.info { flex: 1; }
+.name { font-weight: 800; font-size: 16px; }
+.level { font-size: 12px; color: var(--color-text-muted); }
+.right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.xp { font-weight: 800; color: var(--color-primary); }
+.streak { font-size: 13px; color: var(--color-text-muted); }
+
+.empty { text-align: center; padding: 60px; display: flex; flex-direction: column; align-items: center; gap: 12px; font-size: 40px; }

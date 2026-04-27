@@ -1,0 +1,57 @@
+.page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0eeff, #e8fff8);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 48px 40px;
+  max-width: 460px; width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  display: flex; flex-direction: column; align-items: center; gap: 20px;
+  animation: popIn 0.5s cubic-bezier(.34,1.56,.64,1) both;
+}
+.bigEmoji { font-size: 80px; line-height: 1; animation: bounce 0.6s 0.3s ease both; }
+.title { font-size: 26px; }
+
+.scoreCircle { position: relative; width: 140px; height: 140px; }
+.ring { width: 100%; height: 100%; }
+.scoreText {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; font-weight: 900;
+  font-family: var(--font-display);
+  color: var(--color-text);
+}
+
+.lessonName { color: var(--color-text-muted); font-size: 14px; }
+
+.badges { background: #fffbf0; border-radius: var(--radius-md); padding: 16px 20px; width: 100%; }
+.badges h3 { font-size: 16px; margin-bottom: 12px; }
+.badgeList { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.badge { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 28px; }
+.badge small { font-size: 11px; font-weight: 700; color: var(--color-text-muted); }
+
+.actions { display: flex; gap: 12px; width: 100%; }
+.actions > * { flex: 1; }
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes bounce {
+  0%   { transform: scale(0.5); opacity: 0; }
+  70%  { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 999; }
+.stars { display: flex; gap: 8px; margin: 4px 0; }
+.star { font-size: 32px; opacity: 0.3; transition: opacity 0.3s; }
+.starActive { opacity: 1; animation: starPop 0.4s ease both; }
+.xpGained { background: #fff8e1; border: 2px solid #ffd166; border-radius: 999px; padding: 8px 20px; font-weight: 800; font-size: 16px; color: #b7860a; }
+.perfectBanner { background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); color: #fff; border-radius: var(--radius-md); padding: 12px 20px; font-weight: 800; text-align: center; font-size: 15px; }
+@keyframes starPop { 0% { transform: scale(0); } 70% { transform: scale(1.3); } 100% { transform: scale(1); } }

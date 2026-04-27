@@ -1,0 +1,59 @@
+.page { display: flex; min-height: 100vh; background: var(--color-bg); }
+
+.sidebar {
+  width: 220px; flex-shrink: 0;
+  background: var(--color-surface);
+  border-right: 1.5px solid var(--color-border);
+  display: flex; flex-direction: column;
+  padding: 24px 16px;
+  position: sticky; top: 0; height: 100vh;
+}
+.brand { font-family: var(--font-display); font-size: 20px; font-weight: 800; color: var(--color-primary); margin-bottom: 32px; padding-left: 8px; }
+.nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.navItem {
+  display: block; padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 600;
+  color: var(--color-text-muted);
+  transition: background 0.15s, color 0.15s;
+  cursor: pointer;
+}
+.navItem:hover { background: var(--color-bg); color: var(--color-primary); }
+.active { background: #f0eeff !important; color: var(--color-primary) !important; }
+.logoutBtn { margin-top: auto; }
+
+.main { flex: 1; padding: 40px 36px; overflow-y: auto; }
+.title { font-size: 30px; margin-bottom: 28px; }
+
+.statsGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+.statCard { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px 12px; text-align: center; }
+.statIcon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+.statVal { font-size: 32px; font-weight: 900; font-family: var(--font-display); color: var(--color-text); }
+.statLabel { font-size: 12px; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+.tableCard { padding: 0; overflow: hidden; }
+.tableHeader { padding: 20px 24px; border-bottom: 1.5px solid var(--color-border); }
+.tableHeader h2 { font-size: 18px; }
+.tableWrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; }
+.table th {
+  padding: 12px 20px; text-align: left;
+  font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--color-text-muted);
+  border-bottom: 1.5px solid var(--color-border);
+}
+.table td { padding: 14px 20px; font-size: 14px; border-bottom: 1px solid var(--color-border); }
+.table tr:last-child td { border-bottom: none; }
+.table tr:hover td { background: var(--color-bg); }
+
+.roleBadge {
+  background: #f0eeff; color: var(--color-primary);
+  font-size: 11px; font-weight: 700; padding: 3px 10px;
+  border-radius: 999px; text-transform: uppercase;
+}
+.admin { background: #fff0f3; color: #c9184a; }
+
+@media (max-width: 900px) {
+  .statsGrid { grid-template-columns: repeat(2, 1fr); }
+  .sidebar { display: none; }
+}

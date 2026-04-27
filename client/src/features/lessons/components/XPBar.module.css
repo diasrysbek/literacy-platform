@@ -1,0 +1,10 @@
+.wrap {
+  display: flex; align-items: center; gap: 4px;
+  background: #fff8e1;
+  border: 1.5px solid #ffd166;
+  border-radius: 999px;
+  padding: 4px 14px;
+  white-space: nowrap;
+}
+.icon { font-size: 15px; }
+.label { font-size: 13px; font-weight: 800; color: #b7860a; }

@@ -1,0 +1,62 @@
+.intro {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #f0eeff, #e8fff8);
+  padding: 24px;
+}
+.introCard {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 48px 40px;
+  max-width: 480px; width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  animation: popIn 0.4s cubic-bezier(.34,1.56,.64,1) both;
+}
+.introEmoji { font-size: 72px; line-height: 1; }
+.introCard h1 { font-size: 28px; }
+.introCard p { color: var(--color-text-muted); font-size: 15px; }
+.introBadges { display: flex; gap: 12px; }
+.introBadges span {
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 14px; font-weight: 700;
+}
+.backBtn {
+  background: none; border: none;
+  color: var(--color-text-muted); font-size: 13px;
+  cursor: pointer; margin-top: -4px;
+}
+.backBtn:hover { color: var(--color-primary); text-decoration: underline; }
+
+.page { min-height: 100vh; background: var(--color-bg); display: flex; flex-direction: column; }
+.header {
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px 24px;
+  background: var(--color-surface);
+  border-bottom: 1.5px solid var(--color-border);
+  position: sticky; top: 0; z-index: 10;
+}
+.exit {
+  background: var(--color-bg); border: 1.5px solid var(--color-border);
+  border-radius: 50%; width: 36px; height: 36px;
+  font-size: 16px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.exit:hover { background: #ffe0e6; border-color: #ff6584; color: #ff6584; }
+.progressWrap { flex: 1; display: flex; align-items: center; gap: 10px; }
+.stepCount { font-size: 13px; font-weight: 700; color: var(--color-text-muted); white-space: nowrap; }
+
+.main {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 32px 24px;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}

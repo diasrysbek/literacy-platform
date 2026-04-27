@@ -1,0 +1,27 @@
+.wrapper { width: 100%; }
+
+.card {
+  background: linear-gradient(90deg, #f0eeff 25%, #e8e6f7 50%, #f0eeff 75%);
+  background-size: 200% 100%;
+  border-radius: var(--radius-lg);
+  animation: shimmer 1.4s infinite;
+}
+
+.text {
+  background: linear-gradient(90deg, #f0eeff 25%, #e8e6f7 50%, #f0eeff 75%);
+  background-size: 200% 100%;
+  border-radius: 6px;
+  animation: shimmer 1.4s infinite;
+  display: block;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
