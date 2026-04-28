@@ -1,0 +1,106 @@
+/* =====================
+   MOBILE RESPONSIVE
+   375px+ support
+   ===================== */
+
+/* Map page */
+@media (max-width: 600px) {
+  .mapGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+    padding: 16px !important;
+  }
+  .node {
+    padding: 14px 10px !important;
+  }
+  .nodeEmoji { font-size: 28px !important; }
+  .nodeTitle { font-size: 12px !important; }
+  .title { font-size: 26px !important; }
+}
+
+/* Lesson page */
+@media (max-width: 600px) {
+  .card {
+    padding: 24px 16px !important;
+    margin: 0 8px !important;
+  }
+  .question { font-size: 17px !important; }
+  .option { padding: 12px 14px !important; font-size: 14px !important; }
+  .tfRow { flex-direction: column !important; }
+  .tfBtn { padding: 14px !important; }
+}
+
+/* Result page */
+@media (max-width: 600px) {
+  .card { padding: 28px 20px !important; }
+  .bigEmoji { font-size: 56px !important; }
+  .title { font-size: 22px !important; }
+  .actions { flex-direction: column !important; }
+}
+
+/* ChildSelect page */
+@media (max-width: 600px) {
+  .grid { gap: 12px !important; padding: 0 16px !important; }
+  .childBtn { min-width: 120px !important; padding: 20px 16px !important; }
+  .avatar { font-size: 40px !important; }
+  .title { font-size: 28px !important; }
+}
+
+/* Dashboard */
+@media (max-width: 600px) {
+  .childGrid { grid-template-columns: 1fr !important; }
+  .headerInner { padding: 0 12px !important; }
+  .nav { display: none !important; }
+  .hero { flex-direction: column !important; gap: 12px !important; }
+}
+
+/* Progress */
+@media (max-width: 600px) {
+  .statsGrid { grid-template-columns: repeat(2, 1fr) !important; }
+  .chartsGrid { grid-template-columns: 1fr !important; }
+  .table { font-size: 12px !important; }
+  .table th, .table td { padding: 8px 10px !important; }
+}
+
+/* Leaderboard */
+@media (max-width: 600px) {
+  .podium { gap: 8px !important; }
+  .podiumAvatar { font-size: 28px !important; }
+  .podiumBlock { width: 60px !important; }
+  .inner { padding: 24px 16px !important; }
+}
+
+/* Landing */
+@media (max-width: 600px) {
+  .hero { padding: 32px 16px !important; }
+  .heroTitle { font-size: 32px !important; }
+  .heroSub { font-size: 15px !important; }
+  .heroBtns { flex-direction: column !important; }
+  .featureGrid { grid-template-columns: repeat(2, 1fr) !important; }
+  .steps { grid-template-columns: 1fr 1fr !important; }
+  .step::after { display: none !important; }
+  .gamifContent { flex-direction: column !important; }
+  .nav { padding: 0 16px !important; }
+  .navLinks .navCta { display: none !important; }
+  .sectionInner { padding: 48px 16px !important; }
+}
+
+/* Auth pages */
+@media (max-width: 600px) {
+  .card { padding: 32px 20px !important; margin: 16px !important; }
+  .row { grid-template-columns: 1fr !important; }
+}
+
+/* Admin */
+@media (max-width: 900px) {
+  .sidebar { display: none !important; }
+  .main { padding: 24px 16px !important; }
+  .statsGrid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* General touch targets */
+@media (max-width: 600px) {
+  button, a {
+    min-height: 44px;
+  }
+}
