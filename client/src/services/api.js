@@ -1,20 +1,18 @@
 import axios from 'axios'
-
+ 
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://literacy-platform-production.up.railway.app'
+ 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL
-    ? `${import.meta.env.VITE_API_URL}/api`
-    : '/api',
-  withCredentials: true,
+  baseURL: `${BASE_URL}/api`,
+  withCredentials: false,
 })
-
-// Attach token to every request
+ 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
-
-// Global error handling
+ 
 api.interceptors.response.use(
   (res) => res,
   (error) => {
@@ -25,5 +23,5 @@ api.interceptors.response.use(
     return Promise.reject(error)
   }
 )
-
+ 
 export default api
