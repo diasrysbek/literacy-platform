@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -31,39 +32,39 @@ model Parent {
 }
 
 model Child {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   parentId     String
-  parent       Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  parent       Parent    @relation(fields: [parentId], references: [id], onDelete: Cascade)
   firstName    String
   lastName     String
   age          Int
   avatarUrl    String?
-  totalXp      Int      @default(0)
-  level        Int      @default(1)
-  streakDays   Int      @default(0)
+  totalXp      Int       @default(0)
+  level        Int       @default(1)
+  streakDays   Int       @default(0)
   lastActiveAt DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  progress     LessonProgress[]
-  badges       ChildBadge[]
+  progress      LessonProgress[]
+  badges        ChildBadge[]
   notifications Notification[]
 }
 
 model Lesson {
-  id          String      @id @default(cuid())
+  id          String     @id @default(cuid())
   title       String
   description String?
   type        LessonType
-  difficulty  Difficulty  @default(EASY)
-  xpReward    Int         @default(10)
+  difficulty  Difficulty @default(EASY)
+  xpReward    Int        @default(10)
   order       Int
-  isActive    Boolean     @default(true)
+  isActive    Boolean    @default(true)
   content     Json
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  progress    LessonProgress[]
+  progress LessonProgress[]
 }
 
 model LessonProgress {
@@ -83,23 +84,23 @@ model LessonProgress {
 }
 
 model Badge {
-  id          String       @id @default(cuid())
+  id          String     @id @default(cuid())
   name        String
   description String
   iconUrl     String
   condition   Json
-  createdAt   DateTime     @default(now())
+  createdAt   DateTime   @default(now())
 
-  children    ChildBadge[]
+  children ChildBadge[]
 }
 
 model ChildBadge {
-  id        String   @id @default(cuid())
-  childId   String
-  child     Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
-  badgeId   String
-  badge     Badge    @relation(fields: [badgeId], references: [id])
-  earnedAt  DateTime @default(now())
+  id       String   @id @default(cuid())
+  childId  String
+  child    Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  badgeId  String
+  badge    Badge    @relation(fields: [badgeId], references: [id])
+  earnedAt DateTime @default(now())
 
   @@unique([childId, badgeId])
 }
@@ -118,6 +119,17 @@ model Admin {
   id        String   @id @default(cuid())
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  entity    String
+  entityId  String?
+  before    Json?
+  after     Json?
   createdAt DateTime @default(now())
 }
 
@@ -144,15 +156,4 @@ enum ProgressStatus {
   NOT_STARTED
   IN_PROGRESS
   COMPLETED
-}
-
-model AuditLog {
-  id         String   @id @default(cuid())
-  adminId    String
-  action     String
-  entity     String
-  entityId   String?
-  before     Json?
-  after      Json?
-  createdAt  DateTime @default(now())
 }
