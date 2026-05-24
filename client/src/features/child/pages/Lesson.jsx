@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '@/services/api'
 import Loader from '@/components/UI/Loader'
@@ -12,6 +12,7 @@ import styles from './Lesson.module.css'
 export default function Lesson() {
   const { childId, lessonId } = useParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState([])
   const [started, setStarted] = useState(false)
@@ -24,14 +25,31 @@ export default function Lesson() {
   const startMutation = useMutation({
     mutationFn: () => api.post(`/lessons/${lessonId}/start`, { childId }),
     onSuccess: () => setStarted(true),
+    onError: () => setStarted(true),
   })
 
   const completeMutation = useMutation({
-    mutationFn: (score) => api.post(`/lessons/${lessonId}/complete`, { childId, score }),
+    mutationFn: (score) => {
+      return api.post(`/lessons/${lessonId}/complete`, { childId, score })
+    },
     onSuccess: (res) => {
+      // Инвалидируем все связанные данные
+      queryClient.invalidateQueries(['childStats', childId])
+      queryClient.invalidateQueries(['childProgress', childId])
+      queryClient.invalidateQueries(['progress', childId])
+      queryClient.invalidateQueries(['notifications'])
+      queryClient.invalidateQueries(['children'])
+
       navigate(`/play/${childId}/result/${lessonId}`, {
-        state: { score: calculateScore(), newBadges: res.data.newBadges, lesson },
+        state: {
+          score: res.data.progress?.score ?? 0,
+          newBadges: res.data.newBadges ?? [],
+          lesson,
+        },
       })
+    },
+    onError: (err) => {
+      alert('Ошибка при сохранении: ' + (err.response?.data?.message || err.message))
     },
   })
 
@@ -40,9 +58,9 @@ export default function Lesson() {
   const exercises = lesson?.content?.exercises ?? []
   const totalSteps = exercises.length
 
-  const calculateScore = () => {
+  const calculateScore = (currentAnswers) => {
     if (!exercises.length) return 100
-    const correct = answers.filter((a, i) => a === exercises[i]?.answer).length
+    const correct = currentAnswers.filter((a, i) => a === exercises[i]?.answer).length
     return Math.round((correct / exercises.length) * 100)
   }
 
@@ -50,21 +68,19 @@ export default function Lesson() {
     const newAnswers = [...answers, answer]
     setAnswers(newAnswers)
     if (step + 1 >= totalSteps) {
-      const correct = newAnswers.filter((a, i) => a === exercises[i]?.answer).length
-      const score = Math.round((correct / totalSteps) * 100)
+      const score = calculateScore(newAnswers)
       completeMutation.mutate(score)
     } else {
       setStep(step + 1)
     }
   }
 
-  // Intro screen
   if (!started) {
     return (
       <div className={styles.intro}>
         <div className={styles.introCard}>
           <div className={styles.introEmoji}>
-            {{ READING: '📖', WRITING: '✏️', PHONICS: '🔤', COMPREHENSION: '🧠', VOCABULARY: '📝' }[lesson?.type] ?? '📚'}
+            {({ READING: '📖', WRITING: '✏️', PHONICS: '🔤', COMPREHENSION: '🧠', VOCABULARY: '📝' })[lesson?.type] ?? '📚'}
           </div>
           <h1>{lesson?.title}</h1>
           <p>{lesson?.description}</p>
@@ -97,14 +113,9 @@ export default function Lesson() {
         </div>
         <XPBar xp={lesson?.xpReward} />
       </header>
-
       <main className={styles.main}>
         {current && (
-          <ExerciseCard
-            key={step}
-            exercise={current}
-            onAnswer={handleAnswer}
-          />
+          <ExerciseCard key={step} exercise={current} onAnswer={handleAnswer} />
         )}
       </main>
     </div>
