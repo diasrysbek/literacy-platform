@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { useI18n, getErrorMessage } from '@/i18n'
 import Button from '@/components/UI/Button'
+import SettingsSwitcher from '@/components/SettingsSwitcher/SettingsSwitcher'
 import styles from './Auth.module.css'
 
 export default function Register() {
   const { register } = useAuth()
+  const { t } = useI18n()
   const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -15,9 +18,14 @@ export default function Register() {
     setError('')
     setLoading(true)
     try {
-      await register(form)
+      await register({
+        ...form,
+        email: form.email.trim(),
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+      })
     } catch (err) {
-      setError(err.response?.data?.message || 'Ошибка регистрации')
+      setError(getErrorMessage(err, t))
     } finally {
       setLoading(false)
     }
@@ -27,42 +35,43 @@ export default function Register() {
 
   return (
     <div className={styles.page}>
+      <SettingsSwitcher floating />
       <div className={styles.blob1} />
       <div className={styles.blob2} />
 
       <div className={styles.card}>
         <div className={styles.logo}>🌟</div>
-        <h1 className={styles.title}>Создать аккаунт</h1>
-        <p className={styles.subtitle}>Начните обучение вашего ребёнка</p>
+        <h1 className={styles.title}>{t('auth.register.title')}</h1>
+        <p className={styles.subtitle}>{t('auth.register.subtitle')}</p>
 
-        {error && <div className={styles.error}>{error}</div>}
+        {error && <div className={styles.error} role="alert">{error}</div>}
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.row}>
             <div className={styles.field}>
-              <label>Имя</label>
-              <input placeholder="Иван" value={form.firstName} onChange={set('firstName')} required />
+              <label htmlFor="reg-first">{t('auth.register.firstName')}</label>
+              <input id="reg-first" autoComplete="given-name" placeholder={t('auth.register.firstNamePh')} value={form.firstName} onChange={set('firstName')} required />
             </div>
             <div className={styles.field}>
-              <label>Фамилия</label>
-              <input placeholder="Иванов" value={form.lastName} onChange={set('lastName')} required />
+              <label htmlFor="reg-last">{t('auth.register.lastName')}</label>
+              <input id="reg-last" autoComplete="family-name" placeholder={t('auth.register.lastNamePh')} value={form.lastName} onChange={set('lastName')} required />
             </div>
           </div>
           <div className={styles.field}>
-            <label>Email</label>
-            <input type="email" placeholder="parent@example.com" value={form.email} onChange={set('email')} required />
+            <label htmlFor="reg-email">{t('auth.email')}</label>
+            <input id="reg-email" type="email" autoComplete="email" placeholder="parent@example.com" value={form.email} onChange={set('email')} required />
           </div>
           <div className={styles.field}>
-            <label>Пароль</label>
-            <input type="password" placeholder="Минимум 6 символов" value={form.password} onChange={set('password')} required minLength={6} />
+            <label htmlFor="reg-password">{t('auth.password')}</label>
+            <input id="reg-password" type="password" autoComplete="new-password" placeholder={t('auth.register.passwordPh')} value={form.password} onChange={set('password')} required minLength={6} />
           </div>
           <Button type="submit" fullWidth loading={loading} size="lg">
-            Зарегистрироваться
+            {t('auth.register.submit')}
           </Button>
         </form>
 
         <p className={styles.link}>
-          Уже есть аккаунт? <Link to="/login">Войти</Link>
+          {t('auth.register.haveAccount')} <Link to="/login">{t('auth.register.login')}</Link>
         </p>
       </div>
     </div>

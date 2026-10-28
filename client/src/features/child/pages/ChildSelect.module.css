@@ -1,6 +1,6 @@
 .page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8f7ff 0%, #eef2ff 100%);
+  background: var(--gradient-page);
   display: flex; align-items: center; justify-content: center;
   position: relative; overflow: hidden;
 }
@@ -51,7 +51,7 @@
 
 .overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.35);
+  background: var(--color-overlay);
   display: flex; align-items: center; justify-content: center;
   z-index: 100; padding: 24px;
 }
@@ -74,3 +74,22 @@
   cursor: pointer;
 }
 .backLink:hover { color: var(--color-primary); }
+
+@media (max-width: 600px) {
+  .inner { padding: 72px 16px 32px; }
+  .title { font-size: 28px; }
+  .grid { gap: 12px; }
+  .childBtn { min-width: 120px; padding: 20px 16px; }
+  .addBtn { min-width: 120px; padding: 20px 16px; }
+  .avatar { font-size: 40px; }
+}
+
+.formError {
+  background: var(--color-danger-bg);
+  border: 1.5px solid var(--color-danger-border);
+  color: var(--color-danger-text);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  text-align: left;
+}

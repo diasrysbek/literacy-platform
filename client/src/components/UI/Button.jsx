@@ -14,12 +14,14 @@ export default function Button({
   loading = false,
   disabled = false,
   fullWidth = false,
+  className = '',
   onClick,
   type = 'button',
   ...props
 }) {
   return (
     <button
+      {...props}
       type={type}
       className={[
         styles.btn,
@@ -27,10 +29,10 @@ export default function Button({
         styles[size],
         fullWidth ? styles.fullWidth : '',
         loading ? styles.loading : '',
+        className, // раньше className из props затирал все стили кнопки
       ].join(' ')}
       disabled={disabled || loading}
       onClick={onClick}
-      {...props}
     >
       {loading ? <span className={styles.spinner} /> : children}
     </button>

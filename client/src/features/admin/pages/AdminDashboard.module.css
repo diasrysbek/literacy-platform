@@ -19,7 +19,7 @@
   cursor: pointer;
 }
 .navItem:hover { background: var(--color-bg); color: var(--color-primary); }
-.active { background: #f0eeff !important; color: var(--color-primary) !important; }
+.active { background: var(--color-tint) !important; color: var(--color-primary) !important; }
 .logoutBtn { margin-top: auto; }
 
 .main { flex: 1; padding: 40px 36px; overflow-y: auto; }
@@ -47,13 +47,26 @@
 .table tr:hover td { background: var(--color-bg); }
 
 .roleBadge {
-  background: #f0eeff; color: var(--color-primary);
+  background: var(--color-tint); color: var(--color-primary);
   font-size: 11px; font-weight: 700; padding: 3px 10px;
   border-radius: 999px; text-transform: uppercase;
 }
-.admin { background: #fff0f3; color: #c9184a; }
+.admin { background: var(--color-danger-bg); color: var(--color-danger-text); }
 
 @media (max-width: 900px) {
   .statsGrid { grid-template-columns: repeat(2, 1fr); }
-  .sidebar { display: none; }
+}
+
+@media (max-width: 900px) {
+  .page { flex-direction: column; }
+  .sidebar {
+    width: 100%; height: auto; position: static;
+    flex-direction: row; flex-wrap: wrap; align-items: center;
+    gap: 8px 12px; padding: 10px 16px;
+    border-right: none; border-bottom: 1.5px solid var(--color-border);
+  }
+  .brand { margin: 0; padding: 0; font-size: 18px; }
+  .nav { flex-direction: row; flex: 1; }
+  .logoutBtn { margin-top: 0; }
+  .main { padding: 24px 16px; }
 }

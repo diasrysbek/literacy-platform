@@ -1,4 +1,6 @@
 import prisma from '../config/db.js'
+import { config } from '../config/env.js'
+import { httpError } from '../utils/httpError.js'
 
 export const getChildStats = async (childId) => {
   const child = await prisma.child.findUnique({
@@ -8,7 +10,7 @@ export const getChildStats = async (childId) => {
       progress: { where: { status: 'COMPLETED' } },
     },
   })
-  if (!child) throw new Error('Child not found')
+  if (!child) throw httpError(404, 'Child not found')
 
   const completedLessons = child.progress.length
   const xpToNextLevel = (child.level * 100) - child.totalXp
@@ -39,7 +41,7 @@ export const checkAndAwardBadges = async (childId) => {
   for (const badge of badges) {
     if (earnedBadgeIds.includes(badge.id)) continue
 
-    const condition = badge.condition
+    const condition = badge.condition || {}
     let earned = false
 
     if (condition.type === 'lessons_completed') {
@@ -48,6 +50,10 @@ export const checkAndAwardBadges = async (childId) => {
       earned = child.totalXp >= condition.amount
     } else if (condition.type === 'streak') {
       earned = child.streakDays >= condition.days
+    } else if (condition.type === 'perfect_score') {
+      // значок «Отличник»: раньше у него было то же условие, что и у «Первого урока»,
+      // и он выдавался за любой первый урок, а не за 100%
+      earned = child.progress.some((p) => p.score === 100)
     }
 
     if (earned) {
@@ -59,26 +65,29 @@ export const checkAndAwardBadges = async (childId) => {
   return newBadges
 }
 
+// Номер «календарного дня» с учётом часового пояса (по умолчанию UTC+5)
+const dayNumber = (date) =>
+  Math.floor((date.getTime() + config.streakUtcOffsetHours * 3600000) / 86400000)
+
 export const updateStreak = async (childId) => {
   const child = await prisma.child.findUnique({ where: { id: childId } })
   const now = new Date()
-  const lastActive = child.lastActiveAt
 
-  if (!lastActive) {
-    await prisma.child.update({ where: { id: childId }, data: { streakDays: 1, lastActiveAt: now } })
-    return 1
-  }
-
-  const diffMs = now - lastActive
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-  let newStreak = child.streakDays
-  if (diffDays === 1) {
-    newStreak += 1
-  } else if (diffDays > 1) {
+  let newStreak
+  if (!child.lastActiveAt) {
     newStreak = 1
+  } else {
+    // Считаем разницу в календарных днях, а не в 24-часовых отрезках:
+    // занятие в 21:00 и затем в 08:00 следующего дня — это уже «два дня подряд»
+    const diffDays = dayNumber(now) - dayNumber(child.lastActiveAt)
+    if (diffDays <= 0) newStreak = Math.max(child.streakDays, 1)
+    else if (diffDays === 1) newStreak = child.streakDays + 1
+    else newStreak = 1
   }
 
-  await prisma.child.update({ where: { id: childId }, data: { streakDays: newStreak, lastActiveAt: now } })
+  await prisma.child.update({
+    where: { id: childId },
+    data: { streakDays: newStreak, lastActiveAt: now },
+  })
   return newStreak
 }

@@ -41,3 +41,14 @@
   .statsGrid { grid-template-columns: repeat(2,1fr); }
   .chartsGrid { grid-template-columns: 1fr; }
 }
+
+@media (max-width: 700px) {
+  .header { flex-wrap: wrap; padding: 14px 16px; gap: 10px 16px; }
+  .header h1 { font-size: 20px; }
+  .main { padding: 20px 14px; }
+  .tableCard { overflow-x: auto; }
+  .table { min-width: 520px; font-size: 12px; }
+  .table th, .table td { padding: 8px 10px; }
+}
+
+.switcher { margin-left: auto; }

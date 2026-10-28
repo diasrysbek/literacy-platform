@@ -1,16 +1,49 @@
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@400;600;700;800&display=swap');
 
+/* ============ ТЕМЫ ============
+   Светлая тема — по умолчанию. Тёмная включается атрибутом
+   <html data-theme="dark"> (ставится в app/settings.js).
+   Цвета в компонентах всегда берём из этих переменных. */
 :root {
+  color-scheme: light;
+
   --color-primary: #6c63ff;
   --color-primary-dark: #5a52d5;
   --color-secondary: #ff6584;
   --color-accent: #43d9ad;
   --color-warning: #ffd166;
+  --color-on-primary: #ffffff;
+
   --color-bg: #f8f7ff;
   --color-surface: #ffffff;
   --color-text: #2d2d3a;
-  --color-text-muted: #8886a0;
+  --color-text-muted: #7a7893;
   --color-border: #e8e6f7;
+
+  /* мягкие подложки */
+  --color-tint: #f0eeff;
+  --color-tint-soft: #f5f3ff;
+  --color-tint-border: #d4d0ff;
+
+  /* статусы */
+  --color-success-bg: #f0fff8;
+  --color-success-text: #1a7a5e;
+  --color-danger-bg: #fff0f3;
+  --color-danger-text: #c9184a;
+  --color-danger-border: #ffb3c1;
+  --color-warning-bg: #fff8e1;
+  --color-warning-text: #b7860a;
+  --color-warning-border: #ffd166;
+
+  /* прочее */
+  --gradient-page: linear-gradient(160deg, #f0eeff, #e8fff8);
+  --color-nav-bg: rgba(255, 255, 255, 0.85);
+  --color-overlay: rgba(0, 0, 0, 0.45);
+  --color-footer-bg: #2d2d3a;
+  --color-placeholder: #a9a7bd;
+  --color-skeleton-1: #f0eeff;
+  --color-skeleton-2: #e8e6f7;
+
   --radius-sm: 8px;
   --radius-md: 16px;
   --radius-lg: 24px;
@@ -21,10 +54,56 @@
   --font-body: 'Nunito', sans-serif;
 }
 
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-primary: #7f78ff;
+  --color-primary-dark: #6a62f0;
+  --color-secondary: #ff7a95;
+  --color-accent: #43d9ad;
+  --color-warning: #ffd166;
+  --color-on-primary: #ffffff;
+
+  --color-bg: #13121c;
+  --color-surface: #1c1b2b;
+  --color-text: #ecebf7;
+  --color-text-muted: #a3a1bb;
+  --color-border: #34324f;
+
+  --color-tint: #26244a;
+  --color-tint-soft: #2b2955;
+  --color-tint-border: #4a4780;
+
+  --color-success-bg: #11332a;
+  --color-success-text: #5eeac0;
+  --color-danger-bg: #3a1a26;
+  --color-danger-text: #ff8fa9;
+  --color-danger-border: #6b2d41;
+  --color-warning-bg: #3a3014;
+  --color-warning-text: #ffd166;
+  --color-warning-border: #6b5a1f;
+
+  --gradient-page: linear-gradient(160deg, #1a1830, #12211f);
+  --color-nav-bg: rgba(28, 27, 43, 0.85);
+  --color-overlay: rgba(0, 0, 0, 0.65);
+  --color-footer-bg: #0b0b12;
+  --color-placeholder: #706e8a;
+  --color-skeleton-1: #26244a;
+  --color-skeleton-2: #34324f;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -33,6 +112,7 @@ body {
   color: var(--color-text);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 h1, h2, h3, h4, h5 {
@@ -45,16 +125,36 @@ button {
   border: none;
   outline: none;
   font-family: var(--font-body);
+  color: inherit;
+  background: none;
 }
 
 input, textarea, select {
   font-family: var(--font-body);
   outline: none;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-placeholder);
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Видимый фокус для клавиатуры (outline:none выше убирает стандартный) */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none; /* у полей фокус показывается рамкой в их модулях */
 }
 
 /* Scrollbar */
@@ -77,3 +177,17 @@ a {
 }
 
 .fade-in { animation: fadeIn 0.4s ease both; }
+
+/* Уважаем системную настройку «уменьшить анимацию» */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Крупные зоны нажатия на телефонах */
+@media (max-width: 600px) {
+  button, a { min-height: 44px; }
+}

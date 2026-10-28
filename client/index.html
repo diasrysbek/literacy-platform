@@ -1,10 +1,28 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>client</title>
+    <meta name="description" content="Интерактивная платформа для развития детей 3–6 лет" />
+    <meta name="theme-color" content="#6c63ff" />
+    <title>LiteracyPlatform</title>
+    <!-- Ставим тему и язык до загрузки React, чтобы страница не мигала белым в тёмной теме -->
+    <script>
+      (function () {
+        try {
+          var saved = JSON.parse(localStorage.getItem('literacy-settings') || '{}').state || {}
+          var theme = saved.theme
+          if (theme !== 'light' && theme !== 'dark') {
+            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          }
+          document.documentElement.setAttribute('data-theme', theme)
+          if (saved.lang === 'ru' || saved.lang === 'kk' || saved.lang === 'en') {
+            document.documentElement.setAttribute('lang', saved.lang)
+          }
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -17,9 +17,11 @@ const start = async () => {
   }
 }
 
-process.on('SIGINT', async () => {
+const shutdown = async () => {
   await prisma.$disconnect()
   process.exit(0)
-})
+}
+process.on('SIGINT', shutdown)
+process.on('SIGTERM', shutdown) // так хостинг останавливает контейнер при деплое
 
 start()

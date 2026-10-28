@@ -1,7 +1,7 @@
 .intro {
   min-height: 100vh;
   display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #f0eeff, #e8fff8);
+  background: var(--gradient-page);
   padding: 24px;
 }
 .introCard {
@@ -47,7 +47,7 @@
   display: flex; align-items: center; justify-content: center;
   transition: background 0.2s;
 }
-.exit:hover { background: #ffe0e6; border-color: #ff6584; color: #ff6584; }
+.exit:hover { background: var(--color-danger-bg); border-color: #ff6584; color: #ff6584; }
 .progressWrap { flex: 1; display: flex; align-items: center; gap: 10px; }
 .stepCount { font-size: 13px; font-weight: 700; color: var(--color-text-muted); white-space: nowrap; }
 
@@ -60,3 +60,23 @@
   from { opacity: 0; transform: scale(0.9); }
   to   { opacity: 1; transform: scale(1); }
 }
+
+@media (max-width: 600px) {
+  .introCard { padding: 32px 20px; }
+  .introCard h1 { font-size: 24px; }
+  .introEmoji { font-size: 56px; }
+  .header { padding: 10px 14px; gap: 10px; }
+  .main { padding: 20px 12px; align-items: flex-start; }
+}
+
+.soundBtn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  border-radius: 50%;
+  font-size: 18px;
+  background: var(--color-tint);
+  border: 1.5px solid var(--color-tint-border);
+}
+.soundBtn:hover { background: var(--color-tint-soft); }

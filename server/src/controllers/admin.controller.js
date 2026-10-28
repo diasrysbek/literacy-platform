@@ -1,4 +1,5 @@
 import prisma from '../config/db.js'
+import { httpError } from '../utils/httpError.js'
 
 export const getStats = async (req, res, next) => {
   try {
@@ -29,6 +30,7 @@ export const getAllUsers = async (req, res, next) => {
 
 export const deleteUser = async (req, res, next) => {
   try {
+    if (req.params.id === req.user.id) throw httpError(400, 'You cannot delete your own account')
     await prisma.user.delete({ where: { id: req.params.id } })
     res.status(204).send()
   } catch (error) {
@@ -38,7 +40,8 @@ export const deleteUser = async (req, res, next) => {
 
 export const createBadge = async (req, res, next) => {
   try {
-    const badge = await prisma.badge.create({ data: req.body })
+    const { name, description, iconUrl, condition } = req.body
+    const badge = await prisma.badge.create({ data: { name, description, iconUrl, condition } })
     res.status(201).json(badge)
   } catch (error) {
     next(error)

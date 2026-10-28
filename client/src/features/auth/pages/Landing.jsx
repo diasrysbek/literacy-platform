@@ -1,24 +1,50 @@
 import { Link } from 'react-router-dom'
+import { useI18n } from '@/i18n'
+import SettingsSwitcher from '@/components/SettingsSwitcher/SettingsSwitcher'
 import styles from './Landing.module.css'
-
-const features = [
-  { icon: '🔤', title: 'Фонетика', desc: 'Учим буквы и звуки через игры' },
-  { icon: '📖', title: 'Чтение', desc: 'Простые слова и предложения' },
-  { icon: '✏️', title: 'Письмо', desc: 'Составляем предложения' },
-  { icon: '🧠', title: 'Понимание', desc: 'Развиваем мышление и словарь' },
-]
 
 const badges = ['🏆', '⭐', '🔥', '🎯', '💎', '🌟']
 
+// Только проверяемые цифры: уроков в программе, языков интерфейса, возраст.
+// Не добавляйте число пользователей или рейтинг, пока их нет в реальности.
+const STATS = { lessons: '25', languages: '3', ages: '3–6' }
+
 export default function Landing() {
+  const { t } = useI18n()
+
+  const features = [
+    { icon: '🔤', key: 'phonics' },
+    { icon: '📖', key: 'reading' },
+    { icon: '✏️', key: 'writing' },
+    { icon: '🧠', key: 'comprehension' },
+  ]
+
+  const steps = [
+    { num: '1', icon: '👨‍👩‍👧', key: 's1' },
+    { num: '2', icon: '🗺️', key: 's2' },
+    { num: '3', icon: '🎮', key: 's3' },
+    { num: '4', icon: '🏆', key: 's4' },
+  ]
+
+  const gamifItems = [
+    { icon: '⚡', key: 'li1' },
+    { icon: '🏆', key: 'li2' },
+    { icon: '🔥', key: 'li3' },
+    { icon: '🏅', key: 'li4' },
+    { icon: '📊', key: 'li5' },
+  ]
+
   return (
     <div className={styles.page}>
       {/* NAV */}
       <nav className={styles.nav}>
-        <div className={styles.navBrand}>📚 LiteracyPlatform</div>
+        <div className={styles.navBrand}>
+          📚 <span className={styles.navBrandText}>LiteracyPlatform</span>
+        </div>
         <div className={styles.navLinks}>
-          <Link to="/login" className={styles.navLogin}>Войти</Link>
-          <Link to="/register" className={styles.navCta}>Начать бесплатно</Link>
+          <SettingsSwitcher />
+          <Link to="/login" className={styles.navLogin}>{t('landing.nav.login')}</Link>
+          <Link to="/register" className={styles.navCta}>{t('landing.nav.start')}</Link>
         </div>
       </nav>
 
@@ -29,53 +55,46 @@ export default function Landing() {
         <div className={styles.heroBlob3} />
 
         <div className={styles.heroContent}>
-          <div className={styles.heroBadge}>🎉 Более 100+ уроков для детей 3–8 лет</div>
+          <div className={styles.heroBadge}>{t('landing.hero.badge', { lessons: STATS.lessons })}</div>
           <h1 className={styles.heroTitle}>
-            Учим читать —<br />
-            <span className={styles.heroAccent}>весело и с пользой!</span>
+            {t('landing.hero.title1')}<br />
+            <span className={styles.heroAccent}>{t('landing.hero.title2')}</span>
           </h1>
-          <p className={styles.heroSub}>
-            Интерактивная платформа для обучения грамоте. Ваш ребёнок будет учиться
-            как в игре — с наградами, уровнями и персонажами!
-          </p>
+          <p className={styles.heroSub}>{t('landing.hero.sub')}</p>
           <div className={styles.heroBtns}>
-            <Link to="/register" className={styles.btnPrimary}>
-              🚀 Начать бесплатно
-            </Link>
-            <Link to="/login" className={styles.btnSecondary}>
-              Войти в аккаунт
-            </Link>
+            <Link to="/register" className={styles.btnPrimary}>{t('landing.hero.btnStart')}</Link>
+            <Link to="/login" className={styles.btnSecondary}>{t('landing.hero.btnLogin')}</Link>
           </div>
           <div className={styles.heroStats}>
-            <div className={styles.heroStat}><b>500+</b><span>детей учатся</span></div>
+            <div className={styles.heroStat}><b>{STATS.languages}</b><span>{t('landing.hero.statKids')}</span></div>
             <div className={styles.heroDivider} />
-            <div className={styles.heroStat}><b>100+</b><span>уроков</span></div>
+            <div className={styles.heroStat}><b>{STATS.lessons}</b><span>{t('landing.hero.statLessons')}</span></div>
             <div className={styles.heroDivider} />
-            <div className={styles.heroStat}><b>4.9★</b><span>рейтинг</span></div>
+            <div className={styles.heroStat}><b>{STATS.ages}</b><span>{t('landing.hero.statRating')}</span></div>
           </div>
         </div>
 
         {/* Mascot */}
         <div className={styles.mascotWrap}>
           <div className={styles.mascot}>🦉</div>
-          <div className={styles.mascotBubble}>Привет! Давай учиться вместе! 👋</div>
-          <div className={styles.floatingBadge1}>⚡ +10 XP</div>
-          <div className={styles.floatingBadge2}>🏆 Новый значок!</div>
-          <div className={styles.floatingBadge3}>🔥 3 дня подряд!</div>
+          <div className={styles.mascotBubble}>{t('landing.mascot.bubble')}</div>
+          <div className={styles.floatingBadge1}>{t('landing.mascot.xp')}</div>
+          <div className={styles.floatingBadge2}>{t('landing.mascot.badge')}</div>
+          <div className={styles.floatingBadge3}>{t('landing.mascot.streak')}</div>
         </div>
       </section>
 
       {/* FEATURES */}
       <section className={styles.features}>
         <div className={styles.sectionInner}>
-          <h2 className={styles.sectionTitle}>Что умеет платформа?</h2>
-          <p className={styles.sectionSub}>Четыре направления обучения для всестороннего развития</p>
+          <h2 className={styles.sectionTitle}>{t('landing.features.title')}</h2>
+          <p className={styles.sectionSub}>{t('landing.features.sub')}</p>
           <div className={styles.featureGrid}>
             {features.map((f) => (
-              <div key={f.title} className={styles.featureCard}>
+              <div key={f.key} className={styles.featureCard}>
                 <div className={styles.featureIcon}>{f.icon}</div>
-                <h3>{f.title}</h3>
-                <p>{f.desc}</p>
+                <h3>{t(`landing.features.${f.key}.title`)}</h3>
+                <p>{t(`landing.features.${f.key}.desc`)}</p>
               </div>
             ))}
           </div>
@@ -85,19 +104,14 @@ export default function Landing() {
       {/* HOW IT WORKS */}
       <section className={styles.how}>
         <div className={styles.sectionInner}>
-          <h2 className={styles.sectionTitle}>Как это работает?</h2>
+          <h2 className={styles.sectionTitle}>{t('landing.how.title')}</h2>
           <div className={styles.steps}>
-            {[
-              { num: '1', icon: '👨‍👩‍👧', title: 'Регистрируйтесь', desc: 'Создайте аккаунт родителя и добавьте профиль ребёнка' },
-              { num: '2', icon: '🗺️', title: 'Выбирайте урок', desc: 'Ребёнок видит карту уроков как в игре и выбирает следующий' },
-              { num: '3', icon: '🎮', title: 'Учитесь играя', desc: 'Интерактивные задания, моментальная обратная связь' },
-              { num: '4', icon: '🏆', title: 'Получайте награды', desc: 'XP, значки, уровни — мотивация продолжать каждый день' },
-            ].map((s) => (
+            {steps.map((s) => (
               <div key={s.num} className={styles.step}>
                 <div className={styles.stepNum}>{s.num}</div>
                 <div className={styles.stepIcon}>{s.icon}</div>
-                <h3>{s.title}</h3>
-                <p>{s.desc}</p>
+                <h3>{t(`landing.how.${s.key}.title`)}</h3>
+                <p>{t(`landing.how.${s.key}.desc`)}</p>
               </div>
             ))}
           </div>
@@ -109,18 +123,18 @@ export default function Landing() {
         <div className={styles.sectionInner}>
           <div className={styles.gamifContent}>
             <div>
-              <h2 className={styles.sectionTitle}>Геймификация<br />мотивирует учиться</h2>
-              <p className={styles.sectionSub}>Ребёнок получает награды за каждое достижение</p>
+              <h2 className={styles.sectionTitle}>
+                {t('landing.gamif.title1')}<br />{t('landing.gamif.title2')}
+              </h2>
+              <p className={styles.sectionSub}>{t('landing.gamif.sub')}</p>
               <ul className={styles.gamifList}>
-                <li>⚡ <b>XP очки</b> за каждый завершённый урок</li>
-                <li>🏆 <b>Уровни</b> — каждые 100 XP новый уровень</li>
-                <li>🔥 <b>Стрик</b> — серия дней обучения подряд</li>
-                <li>🏅 <b>Значки</b> за особые достижения</li>
-                <li>📊 <b>Прогресс</b> — родитель видит всё в дашборде</li>
+                {gamifItems.map((item) => (
+                  <li key={item.key}>
+                    {item.icon} <span><b>{t(`landing.gamif.${item.key}.b`)}</b> {t(`landing.gamif.${item.key}.t`)}</span>
+                  </li>
+                ))}
               </ul>
-              <Link to="/register" className={styles.btnPrimary}>
-                Попробовать бесплатно →
-              </Link>
+              <Link to="/register" className={styles.btnPrimary}>{t('landing.gamif.try')}</Link>
             </div>
             <div className={styles.badgeShowcase}>
               {badges.map((b, i) => (
@@ -137,11 +151,9 @@ export default function Landing() {
       <section className={styles.cta}>
         <div className={styles.ctaInner}>
           <div className={styles.ctaMascot}>🦉</div>
-          <h2>Начните обучение сегодня!</h2>
-          <p>Присоединяйтесь к сотням семей которые уже учатся с нами</p>
-          <Link to="/register" className={styles.btnPrimaryLg}>
-            🚀 Создать бесплатный аккаунт
-          </Link>
+          <h2>{t('landing.cta.title')}</h2>
+          <p>{t('landing.cta.sub')}</p>
+          <Link to="/register" className={styles.btnPrimaryLg}>{t('landing.cta.btn')}</Link>
         </div>
       </section>
 
@@ -149,7 +161,7 @@ export default function Landing() {
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <div className={styles.footerBrand}>📚 LiteracyPlatform</div>
-          <p>© 2025 LiteracyPlatform. Образование для детей 3–8 лет.</p>
+          <p>{t('landing.footer', { year: new Date().getFullYear() })}</p>
         </div>
       </footer>
     </div>

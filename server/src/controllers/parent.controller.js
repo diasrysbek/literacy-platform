@@ -44,11 +44,13 @@ export const getNotifications = async (req, res, next) => {
 
 export const markNotificationRead = async (req, res, next) => {
   try {
-    const notification = await prisma.notification.update({
-      where: { id: req.params.id },
+    // отмечать можно только уведомления о своих детях (раньше — любое по id)
+    const result = await prisma.notification.updateMany({
+      where: { id: req.params.id, child: { parent: { userId: req.user.id } } },
       data: { isRead: true },
     })
-    res.json(notification)
+    if (result.count === 0) return res.status(404).json({ message: 'Notification not found' })
+    res.json({ id: req.params.id, isRead: true })
   } catch (error) {
     next(error)
   }

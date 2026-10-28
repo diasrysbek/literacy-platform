@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import api from '@/services/api'
+import { useI18n } from '@/i18n'
 import Card from '@/components/UI/Card'
 import Loader from '@/components/UI/Loader'
+import SettingsSwitcher from '@/components/SettingsSwitcher/SettingsSwitcher'
 import styles from './Notifications.module.css'
 
 const typeIcon = {
@@ -21,15 +23,18 @@ const typeColor = {
 
 export default function Notifications() {
   const qc = useQueryClient()
+  const { t, locale } = useI18n()
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => api.get('/parent/notifications').then((r) => r.data),
   })
 
+  const refresh = () => qc.invalidateQueries({ queryKey: ['notifications'] })
+
   const markRead = useMutation({
     mutationFn: (id) => api.patch(`/parent/notifications/${id}/read`),
-    onSuccess: () => qc.invalidateQueries(['notifications']),
+    onSuccess: refresh,
   })
 
   const markAllRead = useMutation({
@@ -39,10 +44,10 @@ export default function Notifications() {
           api.patch(`/parent/notifications/${n.id}/read`)
         )
       ),
-    onSuccess: () => qc.invalidateQueries(['notifications']),
+    onSuccess: refresh,
   })
 
-  if (isLoading) return <Loader text="Загрузка уведомлений..." />
+  if (isLoading) return <Loader text={t('parent.notifications.loading')} />
 
   const unread = notifications.filter((n) => !n.isRead)
   const read = notifications.filter((n) => n.isRead)
@@ -50,38 +55,42 @@ export default function Notifications() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <Link to="/dashboard" className={styles.back}>← Назад</Link>
+        <Link to="/dashboard" className={styles.back}>{t('common.back')}</Link>
         <div className={styles.headerRight}>
-          <h1>🔔 Уведомления</h1>
+          <h1>{t('parent.notifications.title')}</h1>
           {unread.length > 0 && (
-            <span className={styles.badge}>{unread.length} новых</span>
+            <span className={styles.badge}>{t('parent.notifications.newCount', { n: unread.length })}</span>
           )}
         </div>
         {unread.length > 0 && (
           <button className={styles.markAllBtn} onClick={() => markAllRead.mutate()}>
-            Прочитать все
+            {t('parent.notifications.markAll')}
           </button>
         )}
+        <SettingsSwitcher />
       </header>
 
       <main className={styles.main}>
         {notifications.length === 0 && (
           <Card className={styles.empty}>
             <div className={styles.emptyIcon}>🔕</div>
-            <h3>Нет уведомлений</h3>
-            <p>Когда ребёнок пройдёт урок или получит значок — вы увидите это здесь</p>
+            <h3>{t('parent.notifications.emptyTitle')}</h3>
+            <p>{t('parent.notifications.emptySub')}</p>
           </Card>
         )}
 
         {unread.length > 0 && (
           <div className={styles.group}>
-            <h2>🆕 Новые</h2>
+            <h2>{t('parent.notifications.groupNew')}</h2>
             <div className={styles.list}>
               {unread.map((n) => (
                 <div
                   key={n.id}
                   className={[styles.notif, styles.unread].join(' ')}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => markRead.mutate(n.id)}
+                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && markRead.mutate(n.id)}
                 >
                   <div
                     className={styles.notifIcon}
@@ -91,7 +100,7 @@ export default function Notifications() {
                   </div>
                   <div className={styles.notifContent}>
                     <p>{n.message}</p>
-                    <span>{new Date(n.createdAt).toLocaleString('ru-RU')}</span>
+                    <span>{new Date(n.createdAt).toLocaleString(locale)}</span>
                   </div>
                   <div className={styles.dot} />
                 </div>
@@ -102,19 +111,16 @@ export default function Notifications() {
 
         {read.length > 0 && (
           <div className={styles.group}>
-            <h2>✅ Прочитанные</h2>
+            <h2>{t('parent.notifications.groupRead')}</h2>
             <div className={styles.list}>
               {read.map((n) => (
                 <div key={n.id} className={[styles.notif, styles.readNotif].join(' ')}>
-                  <div
-                    className={styles.notifIcon}
-                    style={{ background: '#f0f0f0', color: '#aaa' }}
-                  >
+                  <div className={[styles.notifIcon, styles.notifIconRead].join(' ')}>
                     {typeIcon[n.type] || '🔔'}
                   </div>
                   <div className={styles.notifContent}>
                     <p>{n.message}</p>
-                    <span>{new Date(n.createdAt).toLocaleString('ru-RU')}</span>
+                    <span>{new Date(n.createdAt).toLocaleString(locale)}</span>
                   </div>
                 </div>
               ))}

@@ -2,25 +2,31 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import api from '@/services/api'
+import { useAuth } from '@/hooks/useAuth'
+import { useI18n } from '@/i18n'
+import SettingsSwitcher from '@/components/SettingsSwitcher/SettingsSwitcher'
 import Card from '@/components/UI/Card'
 import Button from '@/components/UI/Button'
 import Loader from '@/components/UI/Loader'
+import NewExerciseEditor, { NEW_TYPES, newExerciseTemplate } from '@/features/admin/components/NewExerciseEditor'
 import styles from './CurriculumManager.module.css'
 
 const TYPES = ['READING', 'WRITING', 'PHONICS', 'COMPREHENSION', 'VOCABULARY']
 const DIFFS = ['EASY', 'MEDIUM', 'HARD']
 const typeEmoji = { READING: '📖', WRITING: '✏️', PHONICS: '🔤', COMPREHENSION: '🧠', VOCABULARY: '📝' }
-const diffLabel = { EASY: '🟢 Лёгкий', MEDIUM: '🟡 Средний', HARD: '🔴 Сложный' }
 
 const emptyExercise = { type: 'multiple_choice', question: '', options: ['', '', '', ''], answer: '' }
 
 const emptyForm = {
   title: '', description: '', type: 'PHONICS', difficulty: 'EASY', xpReward: 10,
-  isActive: true, content: { exercises: [] },
+  isActive: true, content: { exercises: [] }, translationsText: '',
 }
 
 export default function CurriculumManager() {
   const qc = useQueryClient()
+  const { logout } = useAuth()
+  const { t } = useI18n()
+  const [formError, setFormError] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editLesson, setEditLesson] = useState(null)
   const [form, setForm] = useState(emptyForm)
@@ -28,22 +34,28 @@ export default function CurriculumManager() {
 
   const { data: lessons = [], isLoading } = useQuery({
     queryKey: ['adminLessons'],
-    queryFn: () => api.get('/lessons').then((r) => r.data),
+    // includeInactive: иначе скрытые уроки пропадали из админки и их нельзя было вернуть
+    queryFn: () => api.get('/lessons', { params: { includeInactive: true } }).then((r) => r.data),
   })
 
   const createLesson = useMutation({
     mutationFn: (data) => api.post('/lessons', data),
-    onSuccess: () => { qc.invalidateQueries(['adminLessons']); closeForm() },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['adminLessons'] }); closeForm() },
+    onError: () => setFormError(t('admin.curriculum.saveError')),
   })
 
   const updateLesson = useMutation({
     mutationFn: ({ id, data }) => api.put(`/lessons/${id}`, data),
-    onSuccess: () => { qc.invalidateQueries(['adminLessons']); closeForm() },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['adminLessons'] }); closeForm() },
+    onError: () => setFormError(t('admin.curriculum.saveError')),
   })
 
   const deleteLesson = useMutation({
     mutationFn: (id) => api.delete(`/lessons/${id}`),
-    onSuccess: () => qc.invalidateQueries(['adminLessons']),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['adminLessons'] })
+      if (res?.data?.deactivated) alert(t('admin.curriculum.deactivated'))
+    },
   })
 
   const closeForm = () => {
@@ -51,6 +63,7 @@ export default function CurriculumManager() {
     setEditLesson(null)
     setForm(emptyForm)
     setActiveTab('info')
+    setFormError('')
   }
 
   const openEdit = (lesson) => {
@@ -63,6 +76,7 @@ export default function CurriculumManager() {
       xpReward: lesson.xpReward,
       isActive: lesson.isActive,
       content: lesson.content || { exercises: [] },
+      translationsText: lesson.translations ? JSON.stringify(lesson.translations, null, 2) : '',
     })
     setShowForm(true)
     setActiveTab('info')
@@ -77,8 +91,70 @@ export default function CurriculumManager() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (editLesson) updateLesson.mutate({ id: editLesson.id, data: form })
-    else createLesson.mutate(form)
+    setFormError('')
+
+    // чистим и проверяем задания перед отправкой
+    const exercises = (form.content.exercises || []).map((ex) => {
+      if (NEW_TYPES.includes(ex.type)) return { ...ex, question: ex.question.trim() } // картинки не трогаем
+      return {
+        ...ex,
+        question: ex.question.trim(),
+        answer: String(ex.answer ?? '').trim(),
+        ...(ex.type === 'multiple_choice'
+          ? { options: (ex.options || []).map((o) => o.trim()).filter(Boolean) }
+          : { options: undefined }),
+      }
+    })
+    for (let i = 0; i < exercises.length; i++) {
+      const ex = exercises[i]
+      const fail = (key) => { setFormError(t(key, { n: i + 1 })); setActiveTab('exercises') }
+      if (NEW_TYPES.includes(ex.type)) {
+        if (ex.type === 'match_pairs') {
+          const ok = (ex.pairs || []).filter((p) => p.left.trim() && p.right.trim())
+          if (ok.length < 2) return fail('admin.curriculum.needPairs')
+          ex.pairs = ok
+        } else {
+          const key = ex.type === 'choose_picture' || ex.type === 'odd_one_out' ? 'emoji' : 'text'
+          // пустые варианты убираем, а индекс правильного пересчитываем
+          const kept = []
+          let newAnswer = -1
+          ;(ex.options || []).forEach((o, k) => {
+            if (String(o[key] ?? '').trim()) { if (k === ex.answer) newAnswer = kept.length; kept.push(o) }
+          })
+          if (kept.length < 2) return fail('admin.curriculum.needOptions')
+          if (newAnswer < 0) return fail('admin.curriculum.needAnswer')
+          ex.options = kept
+          ex.answer = newAnswer
+        }
+        continue
+      }
+      if (ex.type === 'multiple_choice' && ex.options.length < 2) return fail('admin.curriculum.needOptions')
+      if (!ex.answer || (ex.type === 'multiple_choice' && !ex.options.includes(ex.answer))) return fail('admin.curriculum.needAnswer')
+    }
+
+    let translations = null
+    if (form.translationsText.trim()) {
+      try {
+        translations = JSON.parse(form.translationsText)
+        if (typeof translations !== 'object' || Array.isArray(translations)) throw new Error('not an object')
+      } catch {
+        setFormError(t('admin.curriculum.translationsInvalid')); setActiveTab('translations'); return
+      }
+    }
+
+    const payload = {
+      title: form.title.trim(),
+      description: form.description.trim(),
+      type: form.type,
+      difficulty: form.difficulty,
+      // поле number отдаёт строку, а Prisma ждёт Int — раньше сохранение падало с 500
+      xpReward: Math.max(1, Math.min(500, Number(form.xpReward) || 10)),
+      isActive: form.isActive,
+      content: { ...form.content, exercises },
+      ...(translations ? { translations } : {}),
+    }
+    if (editLesson) updateLesson.mutate({ id: editLesson.id, data: payload })
+    else createLesson.mutate(payload)
   }
 
   const setField = (k) => (e) => setForm({ ...form, [k]: e.target.value })
@@ -88,6 +164,7 @@ export default function CurriculumManager() {
     setForm({
       ...form,
       content: {
+        ...form.content,
         exercises: [...(form.content.exercises || []), { ...emptyExercise, options: ['', '', '', ''] }]
       }
     })
@@ -95,23 +172,40 @@ export default function CurriculumManager() {
 
   const removeExercise = (idx) => {
     const exercises = form.content.exercises.filter((_, i) => i !== idx)
-    setForm({ ...form, content: { exercises } })
+    setForm({ ...form, content: { ...form.content, exercises } })
   }
 
   const updateExercise = (idx, key, value) => {
     const exercises = form.content.exercises.map((ex, i) =>
       i === idx ? { ...ex, [key]: value } : ex
     )
-    setForm({ ...form, content: { exercises } })
+    setForm({ ...form, content: { ...form.content, exercises } })
   }
 
   const updateOption = (exIdx, optIdx, value) => {
     const exercises = form.content.exercises.map((ex, i) => {
       if (i !== exIdx) return ex
       const options = ex.options.map((o, j) => j === optIdx ? value : o)
-      return { ...ex, options }
+      // если правим вариант, отмеченный правильным, ответ должен меняться вместе с ним
+      const answer = ex.answer === ex.options[optIdx] ? value : ex.answer
+      return { ...ex, options, answer }
     })
-    setForm({ ...form, content: { exercises } })
+    setForm({ ...form, content: { ...form.content, exercises } })
+  }
+
+  // при смене типа структура задания меняется целиком, вопрос сохраняем
+  const changeType = (idx, type) => {
+    const old = form.content.exercises[idx]
+    const next = NEW_TYPES.includes(type)
+      ? newExerciseTemplate(type, old.question)
+      : { ...emptyExercise, options: ['', '', '', ''], type, question: old.question, answer: type === 'true_false' ? 'true' : '' }
+    const exercises = form.content.exercises.map((ex, i) => (i === idx ? next : ex))
+    setForm({ ...form, content: { ...form.content, exercises } })
+  }
+
+  const replaceExercise = (idx, ex) => {
+    const exercises = form.content.exercises.map((e, i) => (i === idx ? ex : e))
+    setForm({ ...form, content: { ...form.content, exercises } })
   }
 
   const moveExercise = (idx, dir) => {
@@ -119,28 +213,42 @@ export default function CurriculumManager() {
     const newIdx = idx + dir
     if (newIdx < 0 || newIdx >= exercises.length) return
     ;[exercises[idx], exercises[newIdx]] = [exercises[newIdx], exercises[idx]]
-    setForm({ ...form, content: { exercises } })
+    setForm({ ...form, content: { ...form.content, exercises } })
   }
 
-  if (isLoading) return <Loader text="Загрузка уроков..." />
+  const formFooter = (
+    <>
+      {formError && <p className={styles.formError} role="alert">{formError}</p>}
+      <div className={styles.formBtns}>
+        <Button variant="secondary" type="button" onClick={closeForm}>{t('common.cancel')}</Button>
+        <Button type="submit" loading={createLesson.isPending || updateLesson.isPending}>
+          {editLesson ? t('admin.curriculum.save') : t('admin.curriculum.create')}
+        </Button>
+      </div>
+    </>
+  )
+
+  if (isLoading) return <Loader text={t('admin.curriculum.loading')} />
 
   return (
     <div className={styles.page}>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>📚 Admin</div>
         <nav className={styles.nav}>
-          <Link to="/admin" className={styles.navItem}>📊 Дашборд</Link>
-          <span className={styles.navItem + ' ' + styles.active}>📖 Уроки</span>
+          <Link to="/admin" className={styles.navItem}>{t('admin.dashboard')}</Link>
+          <span className={styles.navItem + ' ' + styles.active}>{t('admin.lessons')}</span>
         </nav>
+        <SettingsSwitcher />
+        <Button variant="ghost" size="sm" onClick={logout} className={styles.logoutBtn}>{t('common.logout')}</Button>
       </aside>
 
       <main className={styles.main}>
         <div className={styles.topBar}>
           <div>
-            <h1>Управление уроками</h1>
-            <p className={styles.subtitle}>{lessons.length} уроков в системе</p>
+            <h1>{t('admin.curriculum.title')}</h1>
+            <p className={styles.subtitle}>{t('admin.curriculum.count', { n: t('labels.lessonsCount', { count: lessons.length }) })}</p>
           </div>
-          <Button onClick={openCreate}>+ Новый урок</Button>
+          <Button onClick={openCreate}>{t('admin.curriculum.newLesson')}</Button>
         </div>
 
         <div className={styles.lessonGrid}>
@@ -150,25 +258,25 @@ export default function CurriculumManager() {
                 <span className={styles.typeEmoji}>{typeEmoji[lesson.type]}</span>
                 <div className={styles.lessonBadges}>
                   <span className={[styles.diff, styles[lesson.difficulty.toLowerCase()]].join(' ')}>
-                    {diffLabel[lesson.difficulty]}
+                    {t(`labels.difficulty.${lesson.difficulty}`)}
                   </span>
-                  <span className={lesson.isActive ? styles.active : styles.inactive}>
-                    {lesson.isActive ? '✅ Активен' : '❌ Скрыт'}
+                  <span className={lesson.isActive ? styles.lessonActive : styles.inactive}>
+                    {lesson.isActive ? t('admin.curriculum.active') : t('admin.curriculum.hidden')}
                   </span>
                 </div>
               </div>
               <h3>{lesson.title}</h3>
-              <p className={styles.desc}>{lesson.description || 'Нет описания'}</p>
+              <p className={styles.desc}>{lesson.description || t('admin.curriculum.noDesc')}</p>
               <div className={styles.meta}>
                 <span>⚡ {lesson.xpReward} XP</span>
-                <span>❓ {lesson.content?.exercises?.length ?? 0} заданий</span>
+                <span>❓ {t('labels.tasksCount', { count: lesson.content?.exercises?.length ?? 0 })}</span>
               </div>
               <div className={styles.cardActions}>
                 <Button variant="secondary" size="sm" onClick={() => openEdit(lesson)}>
-                  ✏️ Редактировать
+                  {t('admin.curriculum.edit')}
                 </Button>
                 <Button variant="danger" size="sm"
-                  onClick={() => { if (confirm('Удалить урок?')) deleteLesson.mutate(lesson.id) }}>
+                  onClick={() => { if (confirm(t('admin.curriculum.confirmDelete'))) deleteLesson.mutate(lesson.id) }}>
                   🗑️
                 </Button>
               </div>
@@ -179,7 +287,7 @@ export default function CurriculumManager() {
         {lessons.length === 0 && (
           <div className={styles.empty}>
             <span>📭</span>
-            <p>Уроков пока нет. Создайте первый!</p>
+            <p>{t('admin.curriculum.empty')}</p>
           </div>
         )}
       </main>
@@ -188,7 +296,7 @@ export default function CurriculumManager() {
         <div className={styles.overlay} onClick={closeForm}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h2>{editLesson ? '✏️ Редактировать урок' : '➕ Новый урок'}</h2>
+              <h2>{editLesson ? t('admin.curriculum.modalEdit') : t('admin.curriculum.modalNew')}</h2>
               <button className={styles.closeBtn} onClick={closeForm}>✕</button>
             </div>
 
@@ -197,12 +305,17 @@ export default function CurriculumManager() {
               <button
                 className={[styles.tab, activeTab === 'info' ? styles.tabActive : ''].join(' ')}
                 onClick={() => setActiveTab('info')}>
-                📋 Основное
+                {t('admin.curriculum.tabInfo')}
               </button>
               <button
                 className={[styles.tab, activeTab === 'exercises' ? styles.tabActive : ''].join(' ')}
                 onClick={() => setActiveTab('exercises')}>
-                ❓ Задания ({form.content.exercises?.length || 0})
+                {t('admin.curriculum.tabExercises', { n: form.content.exercises?.length || 0 })}
+              </button>
+              <button
+                className={[styles.tab, activeTab === 'translations' ? styles.tabActive : ''].join(' ')}
+                onClick={() => setActiveTab('translations')}>
+                {t('admin.curriculum.tabTranslations')}
               </button>
             </div>
 
@@ -211,29 +324,29 @@ export default function CurriculumManager() {
               {activeTab === 'info' && (
                 <div className={styles.tabContent}>
                   <div className={styles.field}>
-                    <label>Название *</label>
-                    <input value={form.title} onChange={setField('title')} placeholder="Буква А" required />
+                    <label>{t('admin.curriculum.name')}</label>
+                    <input value={form.title} onChange={setField('title')} placeholder={t('admin.curriculum.namePh')} required />
                   </div>
                   <div className={styles.field}>
-                    <label>Описание</label>
+                    <label>{t('admin.curriculum.desc')}</label>
                     <textarea value={form.description} onChange={setField('description')}
-                      placeholder="Краткое описание урока" rows={3} />
+                      placeholder={t('admin.curriculum.descPh')} rows={3} />
                   </div>
                   <div className={styles.row3}>
                     <div className={styles.field}>
-                      <label>Тип</label>
+                      <label>{t('admin.curriculum.type')}</label>
                       <select value={form.type} onChange={setField('type')}>
-                        {TYPES.map((t) => <option key={t} value={t}>{typeEmoji[t]} {t}</option>)}
+                        {TYPES.map((ty) => <option key={ty} value={ty}>{typeEmoji[ty]} {t(`labels.type.${ty}`)}</option>)}
                       </select>
                     </div>
                     <div className={styles.field}>
-                      <label>Сложность</label>
+                      <label>{t('admin.curriculum.difficulty')}</label>
                       <select value={form.difficulty} onChange={setField('difficulty')}>
-                        {DIFFS.map((d) => <option key={d} value={d}>{d}</option>)}
+                        {DIFFS.map((d) => <option key={d} value={d}>{t(`labels.difficultyPlain.${d}`)}</option>)}
                       </select>
                     </div>
                     <div className={styles.field}>
-                      <label>XP награда</label>
+                      <label>{t('admin.curriculum.xp')}</label>
                       <input type="number" min={1} max={500} value={form.xpReward} onChange={setField('xpReward')} />
                     </div>
                   </div>
@@ -241,12 +354,12 @@ export default function CurriculumManager() {
                     <label className={styles.checkboxLabel}>
                       <input type="checkbox" checked={form.isActive}
                         onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
-                      Урок активен (виден детям)
+                      {t('admin.curriculum.isActive')}
                     </label>
                   </div>
                   <div className={styles.tabNav}>
                     <Button type="button" variant="secondary" onClick={() => setActiveTab('exercises')}>
-                      Далее: Задания →
+                      {t('admin.curriculum.next')}
                     </Button>
                   </div>
                 </div>
@@ -256,21 +369,21 @@ export default function CurriculumManager() {
               {activeTab === 'exercises' && (
                 <div className={styles.tabContent}>
                   <div className={styles.exercisesHeader}>
-                    <p>Добавьте задания для урока</p>
-                    <Button type="button" size="sm" onClick={addExercise}>+ Добавить задание</Button>
+                    <p>{t('admin.curriculum.exercisesHint')}</p>
+                    <Button type="button" size="sm" onClick={addExercise}>{t('admin.curriculum.addExercise')}</Button>
                   </div>
 
                   {form.content.exercises?.length === 0 && (
                     <div className={styles.noExercises}>
                       <span>❓</span>
-                      <p>Нет заданий. Нажмите "+ Добавить задание"</p>
+                      <p>{t('admin.curriculum.noExercises')}</p>
                     </div>
                   )}
 
                   {form.content.exercises?.map((ex, idx) => (
                     <div key={idx} className={styles.exerciseBlock}>
                       <div className={styles.exerciseBlockHeader}>
-                        <span className={styles.exerciseNum}>Задание {idx + 1}</span>
+                        <span className={styles.exerciseNum}>{t('admin.curriculum.exerciseN', { n: idx + 1 })}</span>
                         <div className={styles.exerciseControls}>
                           <button type="button" onClick={() => moveExercise(idx, -1)} disabled={idx === 0}>↑</button>
                           <button type="button" onClick={() => moveExercise(idx, 1)}
@@ -281,55 +394,68 @@ export default function CurriculumManager() {
                       </div>
 
                       <div className={styles.field}>
-                        <label>Тип задания</label>
-                        <select value={ex.type} onChange={(e) => updateExercise(idx, 'type', e.target.value)}>
-                          <option value="multiple_choice">🔘 Выбор ответа</option>
-                          <option value="true_false">✅ Верно/Неверно</option>
-                          <option value="fill_blank">✍️ Вписать ответ</option>
+                        <label>{t('admin.curriculum.exType')}</label>
+                        <select value={ex.type} onChange={(e) => changeType(idx, e.target.value)}>
+                          <optgroup label={t('admin.curriculum.groupKids')}>
+                            <option value="choose_picture">{t('admin.curriculum.typePicture')}</option>
+                            <option value="odd_one_out">{t('admin.curriculum.typeOdd')}</option>
+                            <option value="choose_letter">{t('admin.curriculum.typeLetter')}</option>
+                            <option value="count">{t('admin.curriculum.typeCount')}</option>
+                            <option value="match_pairs">{t('admin.curriculum.typePairs')}</option>
+                          </optgroup>
+                          <optgroup label={t('admin.curriculum.groupSchool')}>
+                            <option value="multiple_choice">{t('admin.curriculum.typeMc')}</option>
+                            <option value="true_false">{t('admin.curriculum.typeTf')}</option>
+                            <option value="fill_blank">{t('admin.curriculum.typeFb')}</option>
+                          </optgroup>
                         </select>
                       </div>
 
                       <div className={styles.field}>
-                        <label>Вопрос *</label>
+                        <label>{t('admin.curriculum.question')}</label>
                         <input value={ex.question}
                           onChange={(e) => updateExercise(idx, 'question', e.target.value)}
-                          placeholder="Введите вопрос..." required />
+                          placeholder={t('admin.curriculum.questionPh')} required />
                       </div>
+
+                      {NEW_TYPES.includes(ex.type) && (
+                        <NewExerciseEditor ex={ex} onChange={(next) => replaceExercise(idx, next)} />
+                      )}
 
                       {ex.type === 'multiple_choice' && (
                         <div className={styles.optionsGrid}>
-                          <label>Варианты ответов</label>
+                          <label>{t('admin.curriculum.options')}</label>
                           {(ex.options || ['', '', '', '']).map((opt, oi) => (
                             <div key={oi} className={styles.optionRow}>
-                              <span className={styles.optionLetter}>{['А','Б','В','Г'][oi]}</span>
+                              <span className={styles.optionLetter}>{t('admin.curriculum.letters')[oi]}</span>
                               <input value={opt}
                                 onChange={(e) => updateOption(idx, oi, e.target.value)}
-                                placeholder={`Вариант ${oi + 1}`} />
+                                placeholder={t('admin.curriculum.optionPh', { n: oi + 1 })} />
                               <button type="button"
                                 className={[styles.answerBtn, ex.answer === opt && opt ? styles.answerSelected : ''].join(' ')}
                                 onClick={() => updateExercise(idx, 'answer', opt)}
-                                title="Отметить как правильный ответ">
+                                title={t('admin.curriculum.markCorrect')}>
                                 {ex.answer === opt && opt ? '✅' : '○'}
                               </button>
                             </div>
                           ))}
-                          {ex.answer && <p className={styles.answerHint}>✅ Правильный ответ: {ex.answer}</p>}
+                          {ex.answer && <p className={styles.answerHint}>{t('admin.curriculum.correctIs', { a: ex.answer })}</p>}
                         </div>
                       )}
 
                       {ex.type === 'true_false' && (
                         <div className={styles.field}>
-                          <label>Правильный ответ</label>
+                          <label>{t('admin.curriculum.correctAnswer')}</label>
                           <div className={styles.tfButtons}>
                             <button type="button"
                               className={[styles.tfBtn, ex.answer === 'true' ? styles.tfSelected : ''].join(' ')}
                               onClick={() => updateExercise(idx, 'answer', 'true')}>
-                              ✅ Верно
+                              {t('child.exercise.true')}
                             </button>
                             <button type="button"
                               className={[styles.tfBtn, ex.answer === 'false' ? styles.tfSelected : ''].join(' ')}
                               onClick={() => updateExercise(idx, 'answer', 'false')}>
-                              ❌ Неверно
+                              {t('child.exercise.false')}
                             </button>
                           </div>
                         </div>
@@ -337,21 +463,32 @@ export default function CurriculumManager() {
 
                       {ex.type === 'fill_blank' && (
                         <div className={styles.field}>
-                          <label>Правильный ответ</label>
+                          <label>{t('admin.curriculum.correctAnswer')}</label>
                           <input value={ex.answer}
                             onChange={(e) => updateExercise(idx, 'answer', e.target.value.toLowerCase())}
-                            placeholder="Введите правильный ответ (строчными буквами)" />
+                            placeholder={t('admin.curriculum.fillPh')} />
                         </div>
                       )}
                     </div>
                   ))}
 
-                  <div className={styles.formBtns}>
-                    <Button variant="secondary" type="button" onClick={closeForm}>Отмена</Button>
-                    <Button type="submit" loading={createLesson.isPending || updateLesson.isPending}>
-                      {editLesson ? '💾 Сохранить' : '✨ Создать урок'}
-                    </Button>
-                  </div>
+                  {formFooter}
+                </div>
+              )}
+
+              {/* TRANSLATIONS TAB */}
+              {activeTab === 'translations' && (
+                <div className={styles.tabContent}>
+                  <p className={styles.answerHint}>{t('admin.curriculum.translationsHint')}</p>
+                  <textarea
+                    className={styles.jsonArea}
+                    value={form.translationsText}
+                    onChange={setField('translationsText')}
+                    rows={16}
+                    spellCheck={false}
+                    placeholder={'{\n  "kk": { "title": "...", "description": "...", "exercises": [ ... ] },\n  "en": { "title": "...", "description": "...", "exercises": [ ... ] }\n}'}
+                  />
+                  {formFooter}
                 </div>
               )}
             </form>

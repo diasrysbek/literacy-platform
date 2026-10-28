@@ -1,7 +1,22 @@
 import prisma from '../config/db.js'
+import { httpError } from '../utils/httpError.js'
 
-export const getLessons = async (filters = {}) => {
-  const where = { isActive: true }
+// Поля, которые можно менять через API (защита от mass-assignment)
+const pickLessonData = (data = {}) => {
+  const out = {}
+  for (const key of ['title', 'description', 'type', 'difficulty', 'xpReward', 'isActive', 'content', 'translations']) {
+    if (data[key] === undefined) continue
+    if (key === 'translations' && data[key] === null) continue // Prisma не принимает обычный null для Json
+    out[key] = data[key]
+  }
+  if (out.xpReward !== undefined) out.xpReward = Number(out.xpReward)
+  return out
+}
+
+export const getLessons = async (filters = {}, { isAdmin = false } = {}) => {
+  const where = {}
+  // скрытые уроки видит только админ и только по явному запросу
+  if (!(isAdmin && String(filters.includeInactive) === 'true')) where.isActive = true
   if (filters.type) where.type = filters.type
   if (filters.difficulty) where.difficulty = filters.difficulty
 
@@ -11,80 +26,78 @@ export const getLessons = async (filters = {}) => {
   })
 }
 
-export const getLessonById = async (id) => {
+export const getLessonById = async (id, { isAdmin = false } = {}) => {
   const lesson = await prisma.lesson.findUnique({ where: { id } })
-  if (!lesson) {
-    const error = new Error('Lesson not found')
-    error.status = 404
-    throw error
-  }
+  if (!lesson || (!lesson.isActive && !isAdmin)) throw httpError(404, 'Lesson not found')
   return lesson
 }
 
 export const startLesson = async (childId, lessonId) => {
-  return prisma.lessonProgress.upsert({
+  const existing = await prisma.lessonProgress.findUnique({
     where: { childId_lessonId: { childId, lessonId } },
-    update: { status: 'IN_PROGRESS', attempts: { increment: 1 } },
-    create: { childId, lessonId, status: 'IN_PROGRESS', attempts: 1 },
+  })
+
+  // Раньше повторный «старт» сбрасывал COMPLETED в IN_PROGRESS — урок переставал считаться
+  // пройденным и при следующем завершении XP начислялся снова (накрутка XP).
+  if (existing) {
+    return prisma.lessonProgress.update({
+      where: { id: existing.id },
+      data: {
+        attempts: { increment: 1 },
+        ...(existing.status !== 'COMPLETED' && { status: 'IN_PROGRESS' }),
+      },
+    })
+  }
+  return prisma.lessonProgress.create({
+    data: { childId, lessonId, status: 'IN_PROGRESS', attempts: 1 },
   })
 }
 
 export const completeLesson = async (childId, lessonId, score) => {
   const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } })
-  if (!lesson) throw new Error('Lesson not found')
+  if (!lesson) throw httpError(404, 'Lesson not found')
 
-  // Проверяем — был ли урок уже завершён раньше
-  const existing = await prisma.lessonProgress.findUnique({
-    where: { childId_lessonId: { childId, lessonId } },
-  })
-  const alreadyCompleted = existing?.status === 'COMPLETED'
+  const where = { childId_lessonId: { childId, lessonId } }
 
-  const progress = await prisma.lessonProgress.upsert({
-    where: { childId_lessonId: { childId, lessonId } },
-    update: {
-      status: 'COMPLETED',
-      score,
-      completedAt: new Date(),
-      attempts: { increment: 1 },
-    },
-    create: {
-      childId,
-      lessonId,
-      status: 'COMPLETED',
-      score,
-      completedAt: new Date(),
-      attempts: 1,
-    },
+  // гарантируем, что строка прогресса существует
+  await prisma.lessonProgress.upsert({
+    where,
+    update: {},
+    create: { childId, lessonId, status: 'IN_PROGRESS', attempts: 0 },
   })
 
-  // XP начисляем только если урок не был завершён раньше
-  if (!alreadyCompleted) {
-    await prisma.child.update({
-      where: { id: childId },
-      data: {
-        totalXp: { increment: lesson.xpReward },
-        lastActiveAt: new Date(),
-      },
-    })
+  // Атомарно «занимаем» первое завершение: updateMany сработает ровно для одного из
+  // параллельных запросов, поэтому двойной клик не даст двойной XP.
+  const claim = await prisma.lessonProgress.updateMany({
+    where: { childId, lessonId, status: { not: 'COMPLETED' } },
+    data: { status: 'COMPLETED', score, completedAt: new Date(), attempts: { increment: 1 } },
+  })
+  const firstCompletion = claim.count === 1
 
-    // Пересчитываем уровень
-    const child = await prisma.child.findUnique({ where: { id: childId } })
-    const newLevel = Math.floor(child.totalXp / 100) + 1
-    if (newLevel > child.level) {
-      await prisma.child.update({
-        where: { id: childId },
-        data: { level: newLevel },
-      })
-    }
-  } else {
-    // Просто обновляем lastActiveAt
-    await prisma.child.update({
-      where: { id: childId },
-      data: { lastActiveAt: new Date() },
+  if (!firstCompletion) {
+    await prisma.lessonProgress.update({
+      where,
+      data: { score, completedAt: new Date(), attempts: { increment: 1 } },
     })
   }
 
-  return progress
+  let xpAwarded = 0
+  if (firstCompletion) {
+    const child = await prisma.child.update({
+      where: { id: childId },
+      data: { totalXp: { increment: lesson.xpReward } },
+    })
+    xpAwarded = lesson.xpReward
+    const newLevel = Math.floor(child.totalXp / 100) + 1
+    if (newLevel !== child.level) {
+      await prisma.child.update({ where: { id: childId }, data: { level: newLevel } })
+    }
+  }
+  // lastActiveAt здесь больше не трогаем: им управляет updateStreak.
+  // Раньше он перезаписывался до подсчёта стрика, и серия дней никогда не росла.
+
+  const progress = await prisma.lessonProgress.findUnique({ where })
+  return { progress, xpAwarded }
 }
 
 export const getChildProgress = async (childId) => {
@@ -98,14 +111,22 @@ export const getChildProgress = async (childId) => {
 export const createLesson = async (data) => {
   const maxOrder = await prisma.lesson.aggregate({ _max: { order: true } })
   return prisma.lesson.create({
-    data: { ...data, order: (maxOrder._max.order || 0) + 1 },
+    data: { ...pickLessonData(data), order: (maxOrder._max.order || 0) + 1 },
   })
 }
 
 export const updateLesson = async (id, data) => {
-  return prisma.lesson.update({ where: { id }, data })
+  return prisma.lesson.update({ where: { id }, data: pickLessonData(data) })
 }
 
+// Если у урока есть прогресс детей, физически удалить его нельзя (внешний ключ) —
+// раньше это заканчивалось ошибкой 500. Такой урок просто скрываем.
 export const deleteLesson = async (id) => {
-  return prisma.lesson.delete({ where: { id } })
+  const used = await prisma.lessonProgress.count({ where: { lessonId: id } })
+  if (used > 0) {
+    await prisma.lesson.update({ where: { id }, data: { isActive: false } })
+    return { deactivated: true }
+  }
+  await prisma.lesson.delete({ where: { id } })
+  return { deactivated: false }
 }

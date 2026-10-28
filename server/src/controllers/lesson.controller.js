@@ -1,18 +1,22 @@
 import * as lessonService from '../services/lesson.service.js'
 import * as gamificationService from '../services/gamification.service.js'
 import * as notificationService from '../services/notification.service.js'
+import { assertChildAccess } from '../services/access.service.js'
+import { httpError } from '../utils/httpError.js'
 import prisma from '../config/db.js'
+
+const isAdmin = (req) => req.user?.role === 'ADMIN'
 
 export const getLessons = async (req, res, next) => {
   try {
-    const lessons = await lessonService.getLessons(req.query)
+    const lessons = await lessonService.getLessons(req.query, { isAdmin: isAdmin(req) })
     res.json(lessons)
   } catch (error) { next(error) }
 }
 
 export const getLesson = async (req, res, next) => {
   try {
-    const lesson = await lessonService.getLessonById(req.params.id)
+    const lesson = await lessonService.getLessonById(req.params.id, { isAdmin: isAdmin(req) })
     res.json(lesson)
   } catch (error) { next(error) }
 }
@@ -20,6 +24,8 @@ export const getLesson = async (req, res, next) => {
 export const startLesson = async (req, res, next) => {
   try {
     const { childId } = req.body
+    await assertChildAccess(req.user.id, childId)
+    await lessonService.getLessonById(req.params.id)
     const progress = await lessonService.startLesson(childId, req.params.id)
     res.json(progress)
   } catch (error) { next(error) }
@@ -28,47 +34,44 @@ export const startLesson = async (req, res, next) => {
 export const completeLesson = async (req, res, next) => {
   try {
     const { childId, score } = req.body
+    await assertChildAccess(req.user.id, childId)
+    if (!Number.isInteger(score) || score < 0 || score > 100) {
+      throw httpError(400, 'score must be an integer between 0 and 100')
+    }
+    await lessonService.getLessonById(req.params.id)
 
-    // Получаем уровень ДО завершения
     const childBefore = await prisma.child.findUnique({
       where: { id: childId },
-      select: { level: true }
+      select: { level: true },
     })
 
-    const progress = await lessonService.completeLesson(childId, req.params.id, score)
-
-    // Получаем урок для уведомления
+    const { progress, xpAwarded } = await lessonService.completeLesson(childId, req.params.id, score)
     const lesson = await lessonService.getLessonById(req.params.id)
 
-    // 1. Уведомление о завершении урока
     await notificationService.notifyLessonComplete(childId, lesson.title, score)
 
-    // 2. Проверяем повышение уровня
     const childAfter = await prisma.child.findUnique({
       where: { id: childId },
-      select: { level: true }
+      select: { level: true },
     })
     if (childAfter.level > childBefore.level) {
       await notificationService.notifyLevelUp(childId, childAfter.level)
     }
 
-    // 3. Обновляем стрик
     await gamificationService.updateStreak(childId)
 
-    // 4. Проверяем и выдаём значки
     const newBadges = await gamificationService.checkAndAwardBadges(childId)
-
-    // 5. Уведомления о новых значках
     for (const badge of newBadges) {
       await notificationService.notifyBadgeEarned(childId, badge.name, badge.iconUrl)
     }
 
-    res.json({ progress, newBadges })
+    res.json({ progress, xpAwarded, newBadges })
   } catch (error) { next(error) }
 }
 
 export const getChildProgress = async (req, res, next) => {
   try {
+    await assertChildAccess(req.user.id, req.params.childId)
     const progress = await lessonService.getChildProgress(req.params.childId)
     res.json(progress)
   } catch (error) { next(error) }
@@ -90,7 +93,7 @@ export const updateLesson = async (req, res, next) => {
 
 export const deleteLesson = async (req, res, next) => {
   try {
-    await lessonService.deleteLesson(req.params.id)
-    res.status(204).send()
+    const result = await lessonService.deleteLesson(req.params.id)
+    res.json(result)
   } catch (error) { next(error) }
 }

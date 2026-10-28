@@ -21,7 +21,7 @@
   font-size: 13px; font-weight: 700; cursor: pointer; color: var(--color-primary);
   transition: background 0.2s;
 }
-.markAllBtn:hover { background: #f0eeff; }
+.markAllBtn:hover { background: var(--color-tint); }
 
 .main { max-width: 700px; margin: 0 auto; padding: 32px 24px; display: flex; flex-direction: column; gap: 28px; }
 
@@ -39,7 +39,7 @@
 .unread {
   cursor: pointer;
   border-color: var(--color-primary);
-  background: #fafafe;
+  background: var(--color-tint-soft);
 }
 .unread:hover { transform: translateX(4px); box-shadow: var(--shadow-sm); }
 .readNotif { opacity: 0.65; }
@@ -65,3 +65,11 @@
 .emptyIcon { font-size: 56px; }
 .empty h3 { font-size: 20px; }
 .empty p { color: var(--color-text-muted); max-width: 300px; }
+
+@media (max-width: 600px) {
+  .header { flex-wrap: wrap; padding: 14px 16px; gap: 10px 12px; }
+  .headerRight { flex-basis: 100%; order: 3; }
+  .main { padding: 20px 14px; }
+}
+
+.notifIconRead { background: var(--color-tint); color: var(--color-text-muted); }

@@ -1,0 +1,16 @@
+.box { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.box > label, .row label { font-size: 13px; font-weight: 700; color: var(--color-text-muted); }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.emoji {
+  width: 90px; padding: 8px 10px; font-size: 22px; text-align: center;
+  border: 1.5px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-bg); color: var(--color-text);
+}
+.num { width: 70px; padding: 8px 10px; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text); }
+.mark, .small, .add {
+  padding: 6px 12px; border-radius: var(--radius-sm); font-weight: 700; min-height: 0;
+  border: 1.5px solid var(--color-border); background: var(--color-surface);
+}
+.marked { border-color: var(--color-accent); background: var(--color-success-bg); }
+.small:disabled { opacity: 0.35; cursor: not-allowed; }
+.add { align-self: flex-start; color: var(--color-primary); border-style: dashed; }

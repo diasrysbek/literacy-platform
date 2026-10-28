@@ -16,6 +16,9 @@ import leaderboardRoutes from './routes/leaderboard.routes.js'
 
 const app = express()
 
+// За прокси (Railway/Vercel) без этого rate-limit видит один и тот же IP для всех пользователей
+app.set('trust proxy', 1)
+
 app.use(helmet({ contentSecurityPolicy: false }))
 
 // CORS — allow all origins
@@ -27,12 +30,26 @@ app.use(cors({
 }))
 app.options('*', cors())
 
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 })
+// Общий лимит. 100 запросов за 15 минут было слишком мало: один урок — это 5-6 запросов,
+// а школа/семья за одним IP быстро упиралась в блокировку.
+const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 1000, standardHeaders: true, legacyHeaders: false })
 app.use('/api', limiter)
+
+// Жёсткий лимит только на вход/регистрацию — защита от подбора паролей
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many attempts, please try again later' },
+})
+app.use('/api/auth/login', authLimiter)
+app.use('/api/auth/register', authLimiter)
 
 if (config.nodeEnv === 'development') app.use(morgan('dev'))
 
-app.use(express.json())
+app.use(express.json({ limit: '1mb' }))
 app.use(express.urlencoded({ extended: true }))
 
 const swaggerSpec = {

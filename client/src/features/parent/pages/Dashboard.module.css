@@ -57,8 +57,19 @@
 .playBtn { background: var(--color-primary); color: #fff; }
 .playBtn:hover { background: var(--color-primary-dark); }
 .progressBtn { background: var(--color-bg); color: var(--color-text); border: 1.5px solid var(--color-border); }
-.progressBtn:hover { background: #f0eeff; color: var(--color-primary); }
+.progressBtn:hover { background: var(--color-tint); color: var(--color-primary); }
 
 .hero { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
 .hero h1 { font-size: 32px; }
 .hero p { color: var(--color-text-muted); margin-top: 4px; }
+
+@media (max-width: 700px) {
+  .headerInner { height: auto; flex-wrap: wrap; padding: 10px 14px; gap: 8px 12px; }
+  .nav { order: 3; width: 100%; justify-content: space-between; gap: 12px; overflow-x: auto; padding-bottom: 2px; }
+  .nav a { white-space: nowrap; }
+  .userInfo { margin-left: auto; }
+  .main { padding: 24px 14px; }
+  .hero { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .hero h1 { font-size: 26px; }
+  .childGrid { grid-template-columns: 1fr; }
+}

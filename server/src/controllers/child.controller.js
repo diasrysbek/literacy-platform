@@ -1,5 +1,6 @@
 import * as childService from '../services/child.service.js'
 import * as gamificationService from '../services/gamification.service.js'
+import { assertChildAccess } from '../services/access.service.js'
 
 export const getChildren = async (req, res, next) => {
   try {
@@ -63,6 +64,8 @@ export const deleteChild = async (req, res, next) => {
 
 export const getChildStats = async (req, res, next) => {
   try {
+    // раньше любой родитель мог посмотреть статистику чужого ребёнка по id
+    await assertChildAccess(req.user.id, req.params.id)
     const stats = await gamificationService.getChildStats(req.params.id)
     res.json(stats)
   } catch (error) {

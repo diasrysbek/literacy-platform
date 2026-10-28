@@ -10,12 +10,16 @@ export const errorMiddleware = (err, req, res, next) => {
     }
   }
 
-  if (err.name === 'JsonWebTokenError') {
+  if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
     return res.status(401).json({ message: 'Invalid token' })
   }
 
   const status = err.status || 500
-  const message = err.message || 'Internal server error'
+  // В проде не раскрываем внутренние сообщения 500-х ошибок (SQL, пути и т.п.)
+  const message =
+    status >= 500 && process.env.NODE_ENV === 'production'
+      ? 'Internal server error'
+      : err.message || 'Internal server error'
 
   res.status(status).json({
     message,

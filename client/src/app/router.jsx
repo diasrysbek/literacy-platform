@@ -18,10 +18,14 @@ import Leaderboard from '@/features/child/pages/Leaderboard'
 import AdminDashboard from '@/features/admin/pages/AdminDashboard'
 import CurriculumManager from '@/features/admin/pages/CurriculumManager'
 
+const homeFor = (role) => (role === 'ADMIN' ? '/admin' : '/dashboard')
+
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { user, token } = useStore.getState()
   if (!token) return <Navigate to="/login" replace />
-  if (requiredRole && user?.role !== requiredRole) return <Navigate to="/dashboard" replace />
+  // Раньше при неверной роли редирект всегда вёл на /dashboard — для администратора это
+  // был бесконечный цикл (/dashboard → /dashboard). Теперь каждый попадает на свою главную.
+  if (requiredRole && user?.role !== requiredRole) return <Navigate to={homeFor(user?.role)} replace />
   return children
 }
 
@@ -34,12 +38,15 @@ export const router = createBrowserRouter([
   { path: '/progress/:childId', element: <ProtectedRoute requiredRole="PARENT"><Progress /></ProtectedRoute> },
   { path: '/notifications', element: <ProtectedRoute requiredRole="PARENT"><Notifications /></ProtectedRoute> },
 
-  { path: '/play', element: <ProtectedRoute><ChildSelect /></ProtectedRoute> },
-  { path: '/play/:childId/map', element: <ProtectedRoute><Map /></ProtectedRoute> },
-  { path: '/play/:childId/lesson/:lessonId', element: <ProtectedRoute><Lesson /></ProtectedRoute> },
-  { path: '/play/:childId/result/:lessonId', element: <ProtectedRoute><Result /></ProtectedRoute> },
+  { path: '/play', element: <ProtectedRoute requiredRole="PARENT"><ChildSelect /></ProtectedRoute> },
+  { path: '/play/:childId/map', element: <ProtectedRoute requiredRole="PARENT"><Map /></ProtectedRoute> },
+  { path: '/play/:childId/lesson/:lessonId', element: <ProtectedRoute requiredRole="PARENT"><Lesson /></ProtectedRoute> },
+  { path: '/play/:childId/result/:lessonId', element: <ProtectedRoute requiredRole="PARENT"><Result /></ProtectedRoute> },
   { path: '/leaderboard', element: <ProtectedRoute><Leaderboard /></ProtectedRoute> },
 
   { path: '/admin', element: <ProtectedRoute requiredRole="ADMIN"><AdminDashboard /></ProtectedRoute> },
   { path: '/admin/curriculum', element: <ProtectedRoute requiredRole="ADMIN"><CurriculumManager /></ProtectedRoute> },
+
+  // неизвестный адрес — на главную, а не пустой экран
+  { path: '*', element: <Navigate to="/" replace /> },
 ])
